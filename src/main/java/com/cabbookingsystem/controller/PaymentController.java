@@ -6,6 +6,10 @@ import com.cabbookingsystem.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(
+    origins = "https://loquacious-faun-02b147.netlify.app",
+    allowCredentials = "true"
+)
 @RestController
 @RequestMapping("/api/payment")
 @RequiredArgsConstructor

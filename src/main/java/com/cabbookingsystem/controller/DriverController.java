@@ -11,7 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+@CrossOrigin(
+    origins = "https://loquacious-faun-02b147.netlify.app",
+    allowCredentials = "true"
+)
 @RestController
 @RequestMapping("/api/drivers")
 @RequiredArgsConstructor

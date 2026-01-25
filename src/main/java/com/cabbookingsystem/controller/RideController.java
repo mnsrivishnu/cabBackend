@@ -8,7 +8,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/rides")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(
+    origins = "https://loquacious-faun-02b147.netlify.app",
+    allowCredentials = "true"
+)
 public class RideController {
 
     private final RideService rideService;

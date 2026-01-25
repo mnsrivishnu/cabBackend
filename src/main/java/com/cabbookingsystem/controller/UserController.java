@@ -15,7 +15,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Allow frontend calls
+@CrossOrigin(
+    origins = "https://loquacious-faun-02b147.netlify.app",
+    allowCredentials = "true"
+)
 public class UserController {
 
     private final UserService userService;
