@@ -59,17 +59,20 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/users/register",
-                                "/api/users/login",
-                                "/api/drivers/register",
-                                "/api/drivers/login",
-                                "/api/drivers/available",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html")
-                        .permitAll()
-                        .anyRequest().authenticated());
+                    // ✅ allow preflight requests
+                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+
+                    // ✅ public endpoints
+                    .requestMatchers(
+                        "/api/users/register",
+                        "/api/users/login",
+                        "/api/drivers/register",
+                        "/api/drivers/login"
+                    ).permitAll()
+
+                    .anyRequest().authenticated()
+                )
+                ;
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -81,20 +84,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(allowedOrigins.split(","))); // Use properties
-        config.setAllowedMethods(List.of(allowedMethods.split(","))); // Use properties
-        
-        // Handle wildcard for headers
-        if ("*".equals(allowedHeaders)) {
-            config.setAllowedHeaders(List.of("*"));
-        } else {
-            config.setAllowedHeaders(List.of(allowedHeaders.split(",")));
-        }
-        
-        config.setAllowCredentials(allowCredentials); // Use properties
+        config.setAllowedOrigins(List.of(
+            "https://loquacious-faun-02b147.netlify.app"
+        ));
+
+        config.setAllowedMethods(List.of(
+            "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 }
