@@ -3,7 +3,6 @@ package com.cabbookingsystem.config;
 import com.cabbookingsystem.util.JwtAuthenticationEntryPoint;
 import com.cabbookingsystem.util.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,72 +17,87 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
 @Configuration
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${cors.allowed-origins}")
-    private String allowedOrigins;
-
-    @Value("${cors.allowed-methods}")
-    private String allowedMethods;
-
-    @Value("${cors.allowed-headers}")
-    private String allowedHeaders;
-
-    @Value("${cors.allow-credentials}")
-    private boolean allowCredentials;
-
+    // ================= PASSWORD ENCODER =================
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // ================= AUTH MANAGER =================
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig
+    ) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
+    // ================= SECURITY FILTER =================
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Use custom CORS config
-                .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                    // ✅ allow preflight requests
-                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+            // ✅ enable CORS (IMPORTANT)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                    // ✅ public endpoints
-                    .requestMatchers(
-                        "/api/users/register",
-                        "/api/users/login",
-                        "/api/drivers/register",
-                        "/api/drivers/login"
-                    ).permitAll()
+            // ❌ disable CSRF (JWT based)
+            .csrf(csrf -> csrf.disable())
 
-                    .anyRequest().authenticated()
-                )
-                ;
+            // ❌ no sessions
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
 
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // ❌ unauthorized handler
+            .exceptionHandling(exception ->
+                exception.authenticationEntryPoint(unauthorizedHandler)
+            )
+
+            // ✅ authorization rules
+            .authorizeHttpRequests(auth -> auth
+
+                // ✅ allow ALL preflight requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ✅ PUBLIC APIs (NO JWT)
+                .requestMatchers(
+                    "/api/users/register",
+                    "/api/users/login",
+                    "/api/drivers/register",
+                    "/api/drivers/login"
+                ).permitAll()
+
+                // 🔐 everything else needs JWT
+                .anyRequest().authenticated()
+            );
+
+        // ✅ JWT filter
+        http.addFilterBefore(
+            jwtAuthenticationFilter,
+            UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }
 
-    // ✅ Define CORS settings programmatically using application.properties
+    // ================= CORS CONFIG =================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration config = new CorsConfiguration();
 
+        // ✅ Netlify frontend
         config.setAllowedOrigins(List.of(
             "https://loquacious-faun-02b147.netlify.app"
         ));
@@ -95,9 +109,10 @@ public class SecurityConfig {
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 }
