@@ -48,13 +48,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // ✅ enable CORS (IMPORTANT)
+            // ✅ enable CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
             // ❌ disable CSRF (JWT based)
             .csrf(csrf -> csrf.disable())
 
-            // ❌ no sessions
+            // ❌ stateless session
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
@@ -70,7 +70,7 @@ public class SecurityConfig {
                 // ✅ allow ALL preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // ✅ PUBLIC APIs (NO JWT)
+                // ✅ PUBLIC APIs
                 .requestMatchers(
                     "/api/users/register",
                     "/api/users/login",
@@ -91,15 +91,15 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ================= CORS CONFIG =================
+    // ================= CORS CONFIG (FIXED) =================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ Netlify frontend
-        config.setAllowedOrigins(List.of(
-            "https://loquacious-faun-02b147.netlify.app"
+        // ✅ allow ALL Netlify subdomains
+        config.setAllowedOriginPatterns(List.of(
+            "https://*.netlify.app"
         ));
 
         config.setAllowedMethods(List.of(
