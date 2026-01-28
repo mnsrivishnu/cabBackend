@@ -105,6 +105,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService customUserDetailsService;
 
+    /* =====================================================
+       THIS IS THE REAL FIX
+       ===================================================== */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        // ✅ Skip ALL CORS preflight requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
+        String path = request.getRequestURI();
+
+        // ✅ Skip public endpoints
+        return path.equals("/api/users/register")
+                || path.equals("/api/users/login")
+                || path.equals("/api/drivers/register")
+                || path.equals("/api/drivers/login")
+                || path.equals("/api/drivers/available")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html");
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -112,26 +136,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        /* =====================================================
-           1️⃣ ALWAYS SKIP CORS PREFLIGHT (MOST IMPORTANT)
-           ===================================================== */
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        /* =====================================================
-           2️⃣ SKIP JWT FOR PUBLIC ENDPOINTS
-           ===================================================== */
-        String requestPath = request.getRequestURI();
-        if (isPublicEndpoint(requestPath)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        /* =====================================================
-           3️⃣ PROCESS JWT FOR PROTECTED ENDPOINTS
-           ===================================================== */
         String jwt = getJwtFromRequest(request);
 
         if (StringUtils.hasText(jwt)) {
@@ -157,7 +161,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .setAuthentication(authentication);
                 }
             } catch (Exception e) {
-                // ❌ NEVER break the filter chain
                 SecurityContextHolder.clearContext();
             }
         }
@@ -165,23 +168,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /* =====================================================
-       PUBLIC ENDPOINTS (NO JWT REQUIRED)
-       ===================================================== */
-    private boolean isPublicEndpoint(String path) {
-        return path.equals("/api/users/register")
-                || path.equals("/api/users/login")
-                || path.equals("/api/drivers/register")
-                || path.equals("/api/drivers/login")
-                || path.equals("/api/drivers/available")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/swagger-ui")
-                || path.equals("/swagger-ui.html");
-    }
-
-    /* =====================================================
-       EXTRACT JWT FROM AUTH HEADER
-       ===================================================== */
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
