@@ -27,8 +27,14 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException(
+                "JWT_SECRET is missing or too short (minimum 32 characters required)"
+            );
+        }
         key = Keys.hmacShaKeyFor(secret.getBytes());
     }
+
 
     public String generateToken(String username, Role role) {
         return Jwts.builder()
